@@ -1,0 +1,7 @@
+[Bb]in/
+[Oo]bj/
+packages/
+.vs/
+*.user
+*.suo
+*.userprefs
