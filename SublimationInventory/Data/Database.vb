@@ -8,6 +8,9 @@ Namespace Data
 
         Private Const DbName As String = "sublimationinventory"
 
+        ''' <summary>Set to True to insert the five demo items + sample transactions on a fresh database.</summary>
+        Private Const SeedSampleData As Boolean = False
+
         ''' <summary>Server-only connection (no database selected) - used to CREATE DATABASE.</summary>
         Private ReadOnly Property ServerConnectionString As String
             Get
@@ -115,15 +118,16 @@ Namespace Data
                 ' --- Admin user ---
                 If Convert.ToInt32(Scalar(conn, "SELECT COUNT(*) FROM Users")) = 0 Then
                     Using cmd As New MySqlCommand("INSERT INTO Users(Username,PasswordHash,FullName) VALUES(@u,@h,@f)", conn)
-                        cmd.Parameters.AddWithValue("@u", "admin")
-                        cmd.Parameters.AddWithValue("@h", AuthService.HashPassword("admin123"))
-                        cmd.Parameters.AddWithValue("@f", "Shop Administrator")
+                        cmd.Parameters.AddWithValue("@u", "Inventory")
+                        cmd.Parameters.AddWithValue("@h", AuthService.HashPassword("1234"))
+                        cmd.Parameters.AddWithValue("@f", "Inventory")
                         cmd.ExecuteNonQuery()
                     End Using
                 End If
 
                 ' --- Sample items + transactions ---
-                If Convert.ToInt32(Scalar(conn, "SELECT COUNT(*) FROM Items")) = 0 Then
+                ' Disabled: the system now starts empty. Flip SeedSampleData to True to restore demo data.
+                If SeedSampleData AndAlso Convert.ToInt32(Scalar(conn, "SELECT COUNT(*) FROM Items")) = 0 Then
                     InsertItem(conn, "Gildan White T-Shirt (M)", "Blank Shirt", "pcs", 20, 3.5D)
                     InsertItem(conn, "Sublimation Ink - Cyan", "Ink", "liter", 2, 28D)
                     InsertItem(conn, "Transfer Paper A4", "Transfer Paper", "roll", 5, 15D)

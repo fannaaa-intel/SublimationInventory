@@ -31,7 +31,8 @@ Namespace Forms
             Me.BackColor = Theme.ContentBg
             Me.Font = Theme.AppFont(10.0F)
 
-            _sidebar = New Panel With {.Dock = DockStyle.Left, .Width = 230, .BackColor = Theme.SidebarBg}
+            _sidebar = New Panel With {.Dock = DockStyle.Left, .Width = 230, .BackColor = Theme.SidebarBg,
+                                       .Padding = New Padding(0, 0, 0, 14)}
             AddHandler _sidebar.Paint, AddressOf PaintSidebarProfile
             AddHandler _sidebar.MouseClick, AddressOf OnSidebarClick
             AddHandler _sidebar.MouseMove, Sub(s, ev) _sidebar.Cursor = If(_avatarRect.Contains(ev.Location), Cursors.Hand, Cursors.Default)
@@ -54,7 +55,8 @@ Namespace Forms
                 y += 52
             Next
 
-            Dim btnLogout As New NavButton With {.Text = "Sign Out", .Dock = DockStyle.Bottom, .Tag = "Logout"}
+            Dim btnLogout As New NavButton With {.Text = "Sign Out", .Dock = DockStyle.Bottom, .Tag = "Logout",
+                                                 .Danger = True, .Height = 60}
             AddHandler btnLogout.Click, Sub(s, ev) DoLogout()
             _sidebar.Controls.Add(btnLogout)
         End Sub
