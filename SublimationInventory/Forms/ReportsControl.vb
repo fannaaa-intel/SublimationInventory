@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.Windows.Forms
 Imports SublimationInventory.Data
 Imports SublimationInventory.Models
@@ -110,18 +110,23 @@ Namespace Forms
         End Function
 
         Private Sub StyleField(c As Control)
-            c.BackColor = Color.White
-            AddHandler c.Enter, Sub() c.BackColor = Color.FromArgb(244, 248, 253)
-            AddHandler c.Leave, Sub() c.BackColor = Color.White
+            c.BackColor = Theme.CardBg
+            AddHandler c.Enter, Sub() c.BackColor = Theme.Shift(Theme.Accent, 0.86F)
+            AddHandler c.Leave, Sub() c.BackColor = Theme.CardBg
         End Sub
 
         ' ---------------- Low stock ----------------
         Private Sub BuildLowTab(page As Panel)
             Dim bar As New Panel With {.Dock = DockStyle.Top, .Height = 44, .BackColor = Theme.CardBg}
             Dim right = RightBar()
+            Dim btnPrint As New Button With {.Text = "Print Report", .Size = New Size(126, 34), .Margin = New Padding(0, 0, 10, 0)}
+            UiHelpers.StyleAccentButton(btnPrint)
+            AddHandler btnPrint.Click, Sub(s, e) ReportExporter.Preview(Me, gridLow, "Low Stock Report",
+                                                                       "Items at or below their reorder level.")
             Dim btn As New Button With {.Text = "Export CSV", .Size = New Size(120, 34), .Margin = New Padding(0)}
             UiHelpers.StyleSecondaryButton(btn)
             AddHandler btn.Click, Sub(s, e) UiHelpers.ExportGridToCsv(gridLow, "low_stock_report.csv")
+            right.Controls.Add(btnPrint)
             right.Controls.Add(btn)
             bar.Controls.Add(right)
             bar.Controls.Add(New Label With {.Text = "Items at or below their reorder threshold. Click a column header to sort.",
@@ -133,6 +138,9 @@ Namespace Forms
             gridLow.Columns.Add("OnHand", "On Hand")
             gridLow.Columns.Add("Reorder", "Reorder At")
             gridLow.Columns.Add("Short", "Shortfall")
+            UiHelpers.SetMinColumnWidths(gridLow, 190, 170, 90, 100, 90)
+            UiHelpers.AlignRight(gridLow, "OnHand", "Reorder", "Short")
+            UiHelpers.SetFillWeights(gridLow, 34, 28, 13, 13, 12)
             For Each c As DataGridViewColumn In gridLow.Columns
                 c.SortMode = DataGridViewColumnSortMode.Automatic
             Next
@@ -147,9 +155,11 @@ Namespace Forms
                 gridLow.Rows.Add(s.Item.Name, s.Item.Category, s.OnHand, s.Item.ReorderThreshold,
                                  Math.Max(0, s.Item.ReorderThreshold - s.OnHand))
             Next
-            If gridLow.Rows.Count = 0 Then
-                gridLow.Rows.Add("No items are low on stock.", "", "", "", "")
-            End If
+            ' A fake data row would be exported and sorted like real data - show an overlay instead.
+            UiHelpers.ShowEmptyMessage(gridLow,
+                If(InventoryService.AnyReorderLevelSet(),
+                   "No items are low on stock.",
+                   "No reorder levels set yet - set one on an item to enable low-stock alerts."))
         End Sub
 
         ' ---------------- Stock movement ----------------
@@ -204,10 +214,14 @@ Namespace Forms
             Dim btnApply As New Button With {.Text = "Apply", .Size = New Size(84, 34), .Margin = New Padding(0, 2, 10, 0)}
             UiHelpers.StyleAccentButton(btnApply)
             AddHandler btnApply.Click, Sub(s, e) LoadMovement()
+            Dim btnPrintMove As New Button With {.Text = "Print Report", .Size = New Size(126, 34), .Margin = New Padding(0, 2, 10, 0)}
+            UiHelpers.StyleAccentButton(btnPrintMove)
+            AddHandler btnPrintMove.Click, Sub(s, e) ReportExporter.Preview(Me, gridMove, "Stock Movement Report", MovementSubtitle())
             Dim btnExport As New Button With {.Text = "Export CSV", .Size = New Size(116, 34), .Margin = New Padding(0, 2, 0, 0)}
             UiHelpers.StyleSecondaryButton(btnExport)
             AddHandler btnExport.Click, Sub(s, e) UiHelpers.ExportGridToCsv(gridMove, "stock_movement_report.csv")
             buttons.Controls.Add(btnApply)
+            buttons.Controls.Add(btnPrintMove)
             buttons.Controls.Add(btnExport)
 
             bar.Controls.Add(filters, 0, 0)
@@ -220,7 +234,9 @@ Namespace Forms
             gridMove.Columns.Add("Qty", "Qty")
             gridMove.Columns.Add("Balance", "Running On-Hand")
             gridMove.Columns.Add("Detail", "Source / Reason")
-            UiHelpers.SetMinColumnWidths(gridMove, 96, 150, 70, 60, 120, 150)
+            UiHelpers.SetMinColumnWidths(gridMove, 110, 170, 70, 70, 130, 160)
+            UiHelpers.AlignRight(gridMove, "Qty", "Balance")
+            UiHelpers.SetFillWeights(gridMove, 15, 24, 10, 9, 17, 25)
 
             page.Controls.Add(WrapInCard(gridMove))
             page.Controls.Add(bar)
@@ -273,20 +289,38 @@ Namespace Forms
                 Dim detail = If(t.Type = "In", t.Source, t.Reason)
                 Dim idx = gridMove.Rows.Add(t.TransactionDate.ToString("MMM d, yyyy"), t.ItemName, t.Type, t.Quantity,
                                             If(balAfter.ContainsKey(t.TransactionId), balAfter(t.TransactionId), 0), detail)
-                gridMove.Rows(idx).Cells("Type").Style.ForeColor = If(t.Type = "Out", Color.Firebrick, Color.SeaGreen)
+                gridMove.Rows(idx).Cells("Type").Style.ForeColor = If(t.Type = "Out", Theme.DangerRed, Theme.OkGreen)
+                gridMove.Rows(idx).Cells("Type").Style.Font = Theme.AppFont(10.5F, FontStyle.Bold)
             Next
+            UiHelpers.ShowEmptyMessage(gridMove, "No stock movement in this date range.")
         End Sub
+
+        ''' <summary>Describes the active filters so a printed report is self-explanatory.</summary>
+        Private Function MovementSubtitle() As String
+            Dim parts As New List(Of String)()
+            parts.Add(dtMoveFrom.Value.ToString("dd MMM yyyy") & " to " & dtMoveTo.Value.ToString("dd MMM yyyy"))
+            If cmbMoveType.SelectedIndex > 0 Then parts.Add("Type: " & cmbMoveType.Text)
+            If cmbMoveItem.SelectedValue IsNot Nothing AndAlso Convert.ToInt32(cmbMoveItem.SelectedValue) > 0 Then
+                parts.Add("Item: " & cmbMoveItem.Text)
+            End If
+            Return String.Join("   |   ", parts)
+        End Function
 
         ' ---------------- Stock value ----------------
         Private Sub BuildValueTab(page As Panel)
             Dim bar As New Panel With {.Dock = DockStyle.Top, .Height = 44, .BackColor = Theme.CardBg}
             Dim right = RightBar()
+            Dim btnPrintVal As New Button With {.Text = "Print Report", .Size = New Size(126, 34), .Margin = New Padding(0, 0, 10, 0)}
+            UiHelpers.StyleAccentButton(btnPrintVal)
+            AddHandler btnPrintVal.Click, Sub(s, e) ReportExporter.Preview(Me, gridValue, "Stock Value Report",
+                                                                          "On-hand quantity valued at unit cost.")
             Dim btn As New Button With {.Text = "Export CSV", .Size = New Size(120, 34), .Margin = New Padding(0)}
             UiHelpers.StyleSecondaryButton(btn)
             AddHandler btn.Click, Sub(s, e) UiHelpers.ExportGridToCsv(gridValue, "stock_value_report.csv")
+            right.Controls.Add(btnPrintVal)
             right.Controls.Add(btn)
             bar.Controls.Add(right)
-            bar.Controls.Add(New Label With {.Text = "On-hand quantity � unit cost per item.",
+            bar.Controls.Add(New Label With {.Text = "On-hand quantity × unit cost per item.",
                                              .ForeColor = Theme.TextMuted, .AutoSize = True, .Location = New Point(2, 12), .BackColor = Color.Transparent})
 
             ' footer pill with the grand total
@@ -302,6 +336,9 @@ Namespace Forms
             gridValue.Columns.Add("OnHand", "On Hand")
             gridValue.Columns.Add("Cost", "Unit Cost")
             gridValue.Columns.Add("Value", "Stock Value")
+            UiHelpers.SetMinColumnWidths(gridValue, 220, 100, 120, 130)
+            UiHelpers.AlignRight(gridValue, "OnHand", "Cost", "Value")
+            UiHelpers.SetFillWeights(gridValue, 44, 16, 19, 21)
 
             page.Controls.Add(WrapInCard(gridValue))
             page.Controls.Add(footer)
@@ -316,6 +353,7 @@ Namespace Forms
                 total += s.StockValue
             Next
             lblGrandTotal.Text = "Total inventory value:   " & UiHelpers.Money(total)
+            UiHelpers.ShowEmptyMessage(gridValue, "No supplies recorded yet.")
         End Sub
 
         ' ---------------- shared grid helpers ----------------

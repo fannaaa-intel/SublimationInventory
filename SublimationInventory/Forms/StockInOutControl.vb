@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.Windows.Forms
 Imports SublimationInventory.Data
 Imports SublimationInventory.Models
@@ -84,6 +84,12 @@ Namespace Forms
             grid.Columns.Add("Qty", "Qty")
             grid.Columns.Add("Detail", "Source / Reason")
             grid.Columns.Add("Notes", "Notes")
+            UiHelpers.SetMinColumnWidths(grid, 110, 170, 70, 70, 150, 160)
+            UiHelpers.AlignRight(grid, "Qty")
+            UiHelpers.SetFillWeights(grid, 15, 23, 10, 9, 21, 22)
+            For Each c As DataGridViewColumn In grid.Columns
+                c.SortMode = DataGridViewColumnSortMode.Automatic
+            Next
             gridCard.Controls.Add(grid)
             root.Controls.Add(gridCard, 0, 3)
 
@@ -217,7 +223,7 @@ Namespace Forms
             Dim inList = (e.State And DrawItemState.ComboBoxEdit) <> DrawItemState.ComboBoxEdit
             Dim selected = inList AndAlso (e.State And DrawItemState.Selected) = DrawItemState.Selected
 
-            Using b As New SolidBrush(If(selected, Theme.Highlight, Color.White))
+            Using b As New SolidBrush(If(selected, Theme.Highlight, Theme.CardBg))
                 e.Graphics.FillRectangle(b, e.Bounds)
             End Using
             If e.Index >= 0 Then
@@ -234,9 +240,9 @@ Namespace Forms
             parent.Controls.Add(New Label With {.Text = text, .AutoSize = True, .ForeColor = Theme.TextMuted, .Font = Theme.AppFont(8.0F, FontStyle.Bold), .Location = New Point(x, y), .BackColor = Color.Transparent})
         End Sub
         Private Sub StyleField(c As Control)
-            c.BackColor = Color.White
-            AddHandler c.Enter, Sub() c.BackColor = Color.FromArgb(244, 248, 253)
-            AddHandler c.Leave, Sub() c.BackColor = Color.White
+            c.BackColor = Theme.CardBg
+            AddHandler c.Enter, Sub() c.BackColor = Theme.Shift(Theme.Accent, 0.86F)
+            AddHandler c.Leave, Sub() c.BackColor = Theme.CardBg
         End Sub
         Private Function FieldCombo(parent As Control, label As String, x As Integer, y As Integer) As ComboBox
             AddFieldLabel(parent, label, x, y)
@@ -310,7 +316,7 @@ Namespace Forms
 
             Dim onHand = InventoryService.GetOnHand(itemId)
             If qty > onHand Then
-                AppModal.Warn(Me, $"Cannot remove {qty} unit(s) � only {onHand} on hand for this item.", "Not enough stock")
+                AppModal.Warn(Me, $"Cannot remove {qty} unit(s) — only {onHand} on hand for this item.", "Not enough stock")
                 Return
             End If
 
@@ -332,8 +338,10 @@ Namespace Forms
             For Each t In TransactionRepository.Query(itemId:=itemId, fromDate:=dtFrom.Value, toDate:=dtTo.Value)
                 Dim detail = If(t.Type = "In", t.Source, t.Reason)
                 Dim idx = grid.Rows.Add(t.TransactionDate.ToString("MMM d, yyyy"), t.ItemName, t.Type, t.Quantity, detail, t.Notes)
-                grid.Rows(idx).Cells("Type").Style.ForeColor = If(t.Type = "Out", Color.Firebrick, Color.SeaGreen)
+                grid.Rows(idx).Cells("Type").Style.ForeColor = If(t.Type = "Out", Theme.DangerRed, Theme.OkGreen)
+                grid.Rows(idx).Cells("Type").Style.Font = Theme.AppFont(10.5F, FontStyle.Bold)
             Next
+            UiHelpers.ShowEmptyMessage(grid, "No stock movement in this date range.")
         End Sub
 
         Private Sub Warn(msg As String)
@@ -341,10 +349,8 @@ Namespace Forms
         End Sub
         Private Sub InitializeComponent()
             Me.SuspendLayout()
-            Me.Name = "SuppliesControl"
+            Me.Name = "StockInOutControl"
             Me.ResumeLayout(False)
-        End Sub
-        Private Sub SuppliesControl_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         End Sub
     End Class
 End Namespace

@@ -9,7 +9,21 @@ Namespace UI
             btn.FlatStyle = FlatStyle.Flat
             btn.FlatAppearance.BorderSize = 0
             btn.FlatAppearance.MouseOverBackColor = Theme.AccentHover
+            btn.FlatAppearance.MouseDownBackColor = Theme.AccentDeep
             btn.BackColor = Theme.Accent
+            btn.ForeColor = Color.White
+            btn.Font = Theme.AppFont(10.0F, FontStyle.Bold)
+            btn.Cursor = Cursors.Hand
+            btn.Height = 38
+        End Sub
+
+        ''' <summary>Navy solid button - for primary actions that sit next to a gold one.</summary>
+        Public Sub StyleNavyButton(btn As Button)
+            btn.FlatStyle = FlatStyle.Flat
+            btn.FlatAppearance.BorderSize = 0
+            btn.FlatAppearance.MouseOverBackColor = Theme.Shift(Theme.SidebarBg, 0.12F)
+            btn.FlatAppearance.MouseDownBackColor = Theme.SidebarBgDarker
+            btn.BackColor = Theme.SidebarBg
             btn.ForeColor = Color.White
             btn.Font = Theme.AppFont(10.0F, FontStyle.Bold)
             btn.Cursor = Cursors.Hand
@@ -18,9 +32,10 @@ Namespace UI
 
         Public Sub StyleSecondaryButton(btn As Button)
             btn.FlatStyle = FlatStyle.Flat
-            btn.FlatAppearance.BorderColor = Theme.BorderColor
+            btn.FlatAppearance.BorderColor = Theme.BorderStrong
             btn.FlatAppearance.BorderSize = 1
-            btn.BackColor = Color.White
+            btn.FlatAppearance.MouseOverBackColor = Theme.SelectedRow
+            btn.BackColor = Theme.CardBg
             btn.ForeColor = Theme.TextDark
             btn.Font = Theme.AppFont(10.0F)
             btn.Cursor = Cursors.Hand
@@ -37,11 +52,11 @@ Namespace UI
 
         Public Sub StyleGrid(grid As DataGridView)
             grid.BorderStyle = BorderStyle.FixedSingle
-            grid.BackgroundColor = Color.White
+            grid.BackgroundColor = Theme.CardBg
             grid.EnableHeadersVisualStyles = False
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Theme.SecondaryDark
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Theme.SidebarBg
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Theme.TextLight
-            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Theme.SecondaryDark
+            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Theme.SidebarBg
             grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Theme.TextLight
             grid.ColumnHeadersDefaultCellStyle.Font = Theme.AppFont(11.0F, FontStyle.Bold)
             grid.ColumnHeadersDefaultCellStyle.Padding = New Padding(12, 0, 8, 0)
@@ -60,14 +75,14 @@ Namespace UI
             grid.RowTemplate.Height = 44
             grid.DefaultCellStyle.Font = Theme.AppFont(10.5F)
             ' Clicked row gets a special blue highlight (signals it's picked for an action).
-            grid.DefaultCellStyle.BackColor = Color.White
+            grid.DefaultCellStyle.BackColor = Theme.CardBg
             grid.DefaultCellStyle.ForeColor = Theme.TextDark
             grid.DefaultCellStyle.SelectionBackColor = Theme.Highlight
             grid.DefaultCellStyle.SelectionForeColor = Color.White
             grid.DefaultCellStyle.Padding = New Padding(12, 0, 8, 0)
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False
             grid.GridColor = Theme.BorderStrong
-            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 248, 246)
+            grid.AlternatingRowsDefaultCellStyle.BackColor = Theme.Shift(Theme.CardBg, -0.03F)
             grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Theme.Highlight
             grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.White
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
@@ -103,7 +118,7 @@ Namespace UI
                                                 If e.RowIndex = hovered Then Return          ' same row, don't reflash
                                                 clearHover()
                                                 capture(e.RowIndex)
-                                                g.Rows(e.RowIndex).DefaultCellStyle.BackColor = Shade(effBase(e.RowIndex), -18, -30, -42)
+                                                g.Rows(e.RowIndex).DefaultCellStyle.BackColor = Shade(effBase(e.RowIndex), -14, -18, -26)
                                                 hovered = e.RowIndex
                                                 g.Cursor = Cursors.Hand
                                             End Sub
@@ -127,6 +142,55 @@ Namespace UI
                 Math.Max(0, Math.Min(255, CInt(c.G) + dg)),
                 Math.Max(0, Math.Min(255, CInt(c.B) + db)))
         End Function
+
+        ''' <summary>
+        ''' Sets relative fill weights for columns. With AutoSizeColumnsMode.Fill the grid
+        ''' shares spare width by FillWeight, so explicit weights stop one column (usually
+        ''' the first) from absorbing everything and squeezing the rest into ellipses.
+        ''' </summary>
+        Public Sub SetFillWeights(grid As DataGridView, ParamArray weights As Integer())
+            For i = 0 To Math.Min(weights.Length, grid.Columns.Count) - 1
+                grid.Columns(i).FillWeight = weights(i)
+            Next
+        End Sub
+
+        ''' <summary>Right-aligns the named numeric/currency columns so figures line up on their digits.</summary>
+        Public Sub AlignRight(grid As DataGridView, ParamArray columnNames As String())
+            For Each n In columnNames
+                If grid.Columns.Contains(n) Then
+                    grid.Columns(n).DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+                End If
+            Next
+        End Sub
+
+        ''' <summary>
+        ''' Shows a centred message over an empty grid. Uses a paint overlay rather than a
+        ''' placeholder row, so the "message" is never sorted, exported or printed as data.
+        ''' Safe to call on every reload - the handler is attached once per grid.
+        ''' </summary>
+        Public Sub ShowEmptyMessage(grid As DataGridView, message As String)
+            grid.Tag = message
+            If _emptyHooked.Contains(grid) Then
+                grid.Invalidate()
+                Return
+            End If
+            _emptyHooked.Add(grid)
+            AddHandler grid.Paint, Sub(sender, e)
+                                       Dim gv = DirectCast(sender, DataGridView)
+                                       If gv.Rows.Count > 0 Then Return
+                                       Dim msg = Convert.ToString(gv.Tag)
+                                       If String.IsNullOrEmpty(msg) Then Return
+                                       Dim area = gv.ClientRectangle
+                                       Using f = Theme.AppFont(10.0F)
+                                           TextRenderer.DrawText(e.Graphics, msg, f, area, Theme.TextMuted,
+                                               TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter Or
+                                               TextFormatFlags.WordBreak)
+                                       End Using
+                                   End Sub
+            grid.Invalidate()
+        End Sub
+
+        Private ReadOnly _emptyHooked As New HashSet(Of DataGridView)()
 
         ''' <summary>Applies sensible minimum widths so columns don't compress to unreadable widths when the grid stretches to fill.</summary>
         Public Sub SetMinColumnWidths(grid As DataGridView, ParamArray widths As Integer())
@@ -160,13 +224,17 @@ Namespace UI
                     Next
                     sb.AppendLine(String.Join(",", vals))
                 Next
-                IO.File.WriteAllText(sfd.FileName, sb.ToString())
+                ' UTF-8 *with* BOM so Excel renders the peso sign instead of mojibake.
+                IO.File.WriteAllText(sfd.FileName, sb.ToString(), New System.Text.UTF8Encoding(True))
                 AppModal.Info(Nothing, "Exported to " & sfd.FileName, "Export complete")
             End Using
         End Sub
 
         Private Function CsvField(s As String) As String
             If s Is Nothing Then Return ""
+            ' Spreadsheets execute a leading =, +, - or @ as a formula. Prefix with an
+            ' apostrophe so exported data is always read as text, never evaluated.
+            If s.Length > 0 AndAlso "=+-@".IndexOf(s(0)) >= 0 Then s = "'" & s
             If s.IndexOfAny(New Char() {","c, """"c, ChrW(10), ChrW(13)}) >= 0 Then
                 Return """" & s.Replace("""", """""") & """"
             End If

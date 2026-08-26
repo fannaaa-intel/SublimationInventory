@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 Imports SublimationInventory.Data
@@ -15,7 +15,12 @@ Namespace Forms
         Private ReadOnly navButtons As New List(Of NavButton)()
         Private _avatar As Image
         Private _sidebar As Panel
-        Private ReadOnly _avatarRect As New Rectangle((230 - 60) \ 2, 32, 60, 60)
+
+        ''' <summary>Sidebar geometry - every layout calculation derives from these.</summary>
+        Private Const SidebarWidth As Integer = 236
+        Private Const AvatarSize As Integer = 68
+        Private Const AvatarTop As Integer = 34
+        Private ReadOnly _avatarRect As New Rectangle((SidebarWidth - AvatarSize) \ 2, AvatarTop, AvatarSize, AvatarSize)
 
         Public Sub New(user As User)
             _user = user
@@ -26,12 +31,14 @@ Namespace Forms
         Private Sub InitializeComponent()
             Me.Text = "Sublimation Inventory"
             Me.StartPosition = FormStartPosition.CenterScreen
-            Me.ClientSize = New Size(1140, 720)
-            Me.MinimumSize = New Size(1160, 700)
+            Me.ClientSize = New Size(1280, 800)
+            Me.MinimumSize = New Size(1100, 680)
             Me.BackColor = Theme.ContentBg
             Me.Font = Theme.AppFont(10.0F)
+            ' Open filling the whole screen; the user can still restore/resize.
+            Me.WindowState = FormWindowState.Maximized
 
-            _sidebar = New Panel With {.Dock = DockStyle.Left, .Width = 230, .BackColor = Theme.SidebarBg,
+            _sidebar = New Panel With {.Dock = DockStyle.Left, .Width = SidebarWidth, .BackColor = Theme.SidebarBg,
                                        .Padding = New Padding(0, 0, 0, 14)}
             AddHandler _sidebar.Paint, AddressOf PaintSidebarProfile
             AddHandler _sidebar.MouseClick, AddressOf OnSidebarClick
@@ -46,17 +53,19 @@ Namespace Forms
 
             ' Nav order + labels must match the spec exactly.
             Dim labels = New String() {"Dashboard", "Stock In/Out", "Supplies", "Reports"}
-            Dim y = 150
-            For Each lbl In labels
-                Dim nb As New NavButton With {.Text = lbl, .Left = 0, .Top = y, .Width = _sidebar.Width, .Tag = lbl}
+            Dim glyphs = New String() {"Dashboard", "Stock", "Supplies", "Reports"}
+            Dim y = AvatarTop + AvatarSize + 62
+            For i = 0 To labels.Length - 1
+                Dim nb As New NavButton With {.Text = labels(i), .Glyph = glyphs(i), .Left = 0, .Top = y,
+                                              .Width = _sidebar.Width, .Tag = labels(i)}
                 AddHandler nb.Click, Sub(s, ev) ShowScreen(CStr(DirectCast(s, NavButton).Tag))
                 _sidebar.Controls.Add(nb)
                 navButtons.Add(nb)
-                y += 52
+                y += 58
             Next
 
             Dim btnLogout As New NavButton With {.Text = "Sign Out", .Dock = DockStyle.Bottom, .Tag = "Logout",
-                                                 .Danger = True, .Height = 60}
+                                                 .Danger = True, .Height = 62}
             AddHandler btnLogout.Click, Sub(s, ev) DoLogout()
             _sidebar.Controls.Add(btnLogout)
         End Sub
@@ -64,9 +73,14 @@ Namespace Forms
         Private Sub PaintSidebarProfile(sender As Object, e As PaintEventArgs)
             Dim g = e.Graphics
             g.SmoothingMode = SmoothingMode.AntiAlias
-            Dim d = 60
-            Dim cx = (230 - d) \ 2
-            Dim cy = 32
+            Dim d = AvatarSize
+            Dim cx = _avatarRect.X
+            Dim cy = _avatarRect.Y
+
+            ' Gold ring around the avatar, matching the sidebar accent.
+            Using ring As New Pen(Theme.Accent, 2.5F)
+                g.DrawEllipse(ring, cx - 4, cy - 4, d + 8, d + 8)
+            End Using
 
             If _avatar IsNot Nothing Then
                 ' Clip to a circle and draw the uploaded photo inside it.
@@ -77,22 +91,25 @@ Namespace Forms
                     g.DrawImage(_avatar, cx, cy, d, d)
                     g.Clip = oldClip
                 End Using
-                Using pen As New Pen(Color.FromArgb(80, Color.White), 1.5F)
-                    g.DrawEllipse(pen, cx, cy, d, d)
-                End Using
             Else
-                ' Default: initials on the accent circle.
+                ' Default: initials on a gold circle.
                 Using b As New SolidBrush(Theme.Accent)
                     g.FillEllipse(b, cx, cy, d, d)
                 End Using
-                Using f = Theme.AppFont(18.0F, FontStyle.Bold)
+                Using f = Theme.AppFont(20.0F, FontStyle.Bold)
                     TextRenderer.DrawText(g, Initials(), f, New Rectangle(cx, cy, d, d), Color.White,
                                           TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter)
                 End Using
             End If
 
-            Using f = Theme.AppFont(11.0F, FontStyle.Bold)
-                TextRenderer.DrawText(g, "Shop Inventory", f, New Rectangle(0, cy + d + 10, 230, 20), Theme.TextLight, TextFormatFlags.HorizontalCenter)
+            Dim nameText = If(String.IsNullOrWhiteSpace(_user.FullName), _user.Username, _user.FullName)
+            Using f = Theme.AppFont(12.0F, FontStyle.Bold)
+                TextRenderer.DrawText(g, nameText, f, New Rectangle(8, cy + d + 12, SidebarWidth - 16, 22),
+                                      Theme.TextLight, TextFormatFlags.HorizontalCenter Or TextFormatFlags.EndEllipsis)
+            End Using
+            Using f = Theme.AppFont(8.5F)
+                TextRenderer.DrawText(g, "SHOP INVENTORY", f, New Rectangle(8, cy + d + 34, SidebarWidth - 16, 18),
+                                      Theme.TextOnNavy, TextFormatFlags.HorizontalCenter)
             End Using
         End Sub
 

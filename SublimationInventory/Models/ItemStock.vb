@@ -7,9 +7,14 @@ Namespace Models
         Public Property Item As Item
         Public Property OnHand As Integer
 
+        ''' <summary>
+        ''' True when the item has a reorder level set and has fallen to or below it.
+        ''' An item with no threshold (0) is never "low" - otherwise every item that is
+        ''' simply out of stock, including one just created, would raise a false alert.
+        ''' </summary>
         Public ReadOnly Property IsLowStock As Boolean
             Get
-                Return OnHand <= Item.ReorderThreshold
+                Return Item.ReorderThreshold > 0 AndAlso OnHand <= Item.ReorderThreshold
             End Get
         End Property
 

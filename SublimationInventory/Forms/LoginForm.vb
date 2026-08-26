@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 Imports SublimationInventory.Models
@@ -25,15 +25,15 @@ Namespace Forms
             Me.FormBorderStyle = FormBorderStyle.FixedSingle
             Me.MaximizeBox = False
             Me.MinimizeBox = False
-            Me.ClientSize = New Size(760, 460)
-            Me.BackColor = Color.White
+            Me.ClientSize = New Size(780, 470)
+            Me.BackColor = Theme.ContentBg
             Me.Font = Theme.AppFont(10.0F)
 
-            Dim brand As New Panel With {.Dock = DockStyle.Left, .Width = 320, .BackColor = Theme.SidebarBg}
+            Dim brand As New Panel With {.Dock = DockStyle.Left, .Width = 330, .BackColor = Theme.SidebarBg}
             AddHandler brand.Paint, AddressOf PaintBrand
             Me.Controls.Add(brand)
 
-            Dim rightPane As New Panel With {.Dock = DockStyle.Fill, .BackColor = Color.White}
+            Dim rightPane As New Panel With {.Dock = DockStyle.Fill, .BackColor = Theme.ContentBg}
             Me.Controls.Add(rightPane)
             rightPane.BringToFront()
 
@@ -46,15 +46,16 @@ Namespace Forms
 
             rightPane.Controls.Add(New Label With {.Text = "Username", .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 150)})
             txtUser = New TextBox With {.Location = New Point(48, 174), .Width = 340, .Font = Theme.AppFont(11.0F),
-                                        .BorderStyle = BorderStyle.FixedSingle}
+                                        .BorderStyle = BorderStyle.FixedSingle, .BackColor = Theme.CardBg}
             rightPane.Controls.Add(txtUser)
 
             rightPane.Controls.Add(New Label With {.Text = "Password", .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 214)})
             txtPass = New TextBox With {.Location = New Point(48, 238), .Width = 340, .Font = Theme.AppFont(11.0F),
-                                        .BorderStyle = BorderStyle.FixedSingle, .UseSystemPasswordChar = True}
+                                        .BorderStyle = BorderStyle.FixedSingle, .BackColor = Theme.CardBg,
+                                        .UseSystemPasswordChar = True}
             rightPane.Controls.Add(txtPass)
 
-            lblError = New Label With {.ForeColor = Color.Firebrick, .AutoSize = True, .Location = New Point(48, 276), .Text = ""}
+            lblError = New Label With {.ForeColor = Theme.DangerRed, .AutoSize = True, .Location = New Point(48, 276), .Text = ""}
             rightPane.Controls.Add(lblError)
 
             Dim btnLogin As New Button With {.Text = "Sign In", .Location = New Point(48, 302), .Width = 340}
@@ -67,20 +68,28 @@ Namespace Forms
         Private Sub PaintBrand(sender As Object, e As PaintEventArgs)
             Dim g = e.Graphics
             g.SmoothingMode = SmoothingMode.AntiAlias
-            Dim d = 64
+            Dim d = 72
+            Using ring As New Pen(Theme.Accent, 2.5F)
+                g.DrawEllipse(ring, 52, 66, d + 8, d + 8)
+            End Using
             Using b As New SolidBrush(Theme.Accent)
                 g.FillEllipse(b, 56, 70, d, d)
             End Using
-            Using f = Theme.AppFont(26.0F, FontStyle.Bold)
+            Using f = Theme.AppFont(28.0F, FontStyle.Bold)
                 TextRenderer.DrawText(g, "S", f, New Rectangle(56, 70, d, d), Color.White,
                                       TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter)
             End Using
-            Using f = Theme.AppFont(16.0F, FontStyle.Bold)
-                TextRenderer.DrawText(g, "Sublimation", f, New Point(54, 152), Theme.TextLight)
-                TextRenderer.DrawText(g, "Inventory", f, New Point(54, 178), Theme.Accent)
+            Using f = Theme.AppFont(17.0F, FontStyle.Bold)
+                TextRenderer.DrawText(g, "Sublimation", f, New Point(54, 168), Theme.TextLight)
+                TextRenderer.DrawText(g, "Inventory", f, New Point(54, 196), Theme.Accent)
             End Using
             Using f = Theme.AppFont(9.5F)
-                TextRenderer.DrawText(g, "Track blanks, ink, paper & prints", f, New Point(56, 214), Theme.TextMuted)
+                ' NoPrefix: without it TextRenderer eats the "&" and underlines the next letter.
+                TextRenderer.DrawText(g, "Track blanks, ink, paper & prints", f,
+                                      New Rectangle(56, 232, 250, 20), Theme.TextOnNavy, TextFormatFlags.NoPrefix)
+            End Using
+            Using p As New Pen(Color.FromArgb(60, Theme.Accent), 1.0F)
+                g.DrawLine(p, 56, 262, 260, 262)
             End Using
         End Sub
 

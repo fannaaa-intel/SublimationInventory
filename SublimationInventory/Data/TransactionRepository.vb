@@ -1,7 +1,6 @@
-Imports MySql.Data.MySqlClient
+﻿Imports MySql.Data.MySqlClient
 Imports System.Text
 Imports SublimationInventory.Models
-Imports System.Data.SqlClient
 
 Namespace Data
     Public Module TransactionRepository

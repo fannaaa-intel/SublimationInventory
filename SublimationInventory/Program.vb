@@ -1,4 +1,4 @@
-Imports System.Windows.Forms
+﻿Imports System.Windows.Forms
 Imports SublimationInventory.Data
 Imports SublimationInventory.Forms
 Imports SublimationInventory.UI
@@ -15,9 +15,9 @@ Module Program
             Database.Initialize()
         Catch ex As Exception
             AppModal.ErrorBox(Nothing,
-                "Could not initialize the database." & vbCrLf & vbCrLf & ex.Message & vbCrLf & vbCrLf &
-                "Make sure SQL Server LocalDB is installed. It ships with Visual Studio 2022 " &
-                "(Individual components > SQL Server Express 2019 LocalDB).",
+                "Could not connect to the database." & vbCrLf & vbCrLf & ex.Message & vbCrLf & vbCrLf &
+                "Check that MySQL is running (start Apache + MySQL in the XAMPP Control Panel) " &
+                "and that the connection details in App.config are correct.",
                 "Startup error")
             Return
         End Try

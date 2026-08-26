@@ -23,7 +23,7 @@ Namespace UI
                         confirmText As String, showCancel As Boolean, danger As Boolean)
             Me.FormBorderStyle = FormBorderStyle.None
             Me.ShowInTaskbar = False
-            Me.BackColor = Color.White
+            Me.BackColor = Theme.CardBg
             Me.Font = Theme.AppFont(10.0F)
             Me.ClientSize = New Size(412, 200)
             SetStyle(ControlStyles.AllPaintingInWmPaint Or ControlStyles.OptimizedDoubleBuffer, True)
@@ -32,7 +32,7 @@ Namespace UI
 
             Me.Controls.Add(New Panel With {.Dock = DockStyle.Top, .Height = 6, .BackColor = accent})
 
-            Dim icon As New Panel With {.Size = New Size(46, 46), .Location = New Point(28, 34), .BackColor = Color.White}
+            Dim icon As New Panel With {.Size = New Size(46, 46), .Location = New Point(28, 34), .BackColor = Theme.CardBg}
             AddHandler icon.Paint, Sub(s, e)
                                        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias
                                        Using b As New SolidBrush(Color.FromArgb(28, accent))
@@ -79,12 +79,12 @@ Namespace UI
         End Sub
 
         Private Shared Function ColorFor(kind As ModalKind, danger As Boolean) As Color
-            If danger Then Return Color.FromArgb(200, 55, 45)
+            If danger Then Return Theme.DangerRed
             Select Case kind
-                Case ModalKind.Success : Return Color.FromArgb(34, 153, 84)
-                Case ModalKind.Warning : Return Color.FromArgb(200, 120, 20)
-                Case ModalKind.Problem : Return Color.FromArgb(200, 55, 45)
-                Case Else : Return Theme.Highlight   ' Info / Question -> blue
+                Case ModalKind.Success : Return Theme.OkGreen
+                Case ModalKind.Warning : Return Theme.WarnAmber
+                Case ModalKind.Problem : Return Theme.DangerRed
+                Case Else : Return Theme.SidebarBg   ' Info / Question -> navy
             End Select
         End Function
 

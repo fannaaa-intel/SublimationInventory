@@ -1,5 +1,4 @@
-Imports System.Data.SqlClient
-Imports MySql.Data.MySqlClient
+﻿Imports MySql.Data.MySqlClient
 Imports SublimationInventory.Data
 Imports SublimationInventory.Models
 
@@ -57,6 +56,15 @@ Namespace Services
 
         Public Function GetLowStockCount() As Integer
             Return GetLowStockItems().Count
+        End Function
+
+        ''' <summary>
+        ''' True if at least one item has a reorder level configured. A zero low-stock
+        ''' count means something very different when no thresholds exist at all, and the
+        ''' dashboard says so rather than implying everything is healthy.
+        ''' </summary>
+        Public Function AnyReorderLevelSet() As Boolean
+            Return ItemRepository.GetAll().Any(Function(i) i.ReorderThreshold > 0)
         End Function
 
         Public Function GetTotalUnitsInStock() As Integer

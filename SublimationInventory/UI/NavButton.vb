@@ -1,17 +1,18 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 
 Namespace UI
-    ''' <summary>Flat, custom-drawn sidebar navigation button with Active and Danger states.</summary>
+    ''' <summary>
+    ''' Sidebar navigation button drawn as a cream "pill" on the navy rail, with a
+    ''' line-art glyph on the left and a chevron on the right. Active state fills gold.
+    ''' </summary>
     Public Class NavButton
         Inherits Button
 
         Private _active As Boolean
         Private _hover As Boolean
-
-        Private Shared ReadOnly DangerRed As Color = Color.FromArgb(206, 62, 52)
-        Private Shared ReadOnly DangerSoft As Color = Color.FromArgb(226, 130, 122)
+        Private _glyph As String = ""
 
         Public Property Active As Boolean
             Get
@@ -19,6 +20,17 @@ Namespace UI
             End Get
             Set(value As Boolean)
                 _active = value
+                Invalidate()
+            End Set
+        End Property
+
+        ''' <summary>Which line-art icon to draw: Dashboard, Stock, Supplies, Reports, Exit.</summary>
+        Public Property Glyph As String
+            Get
+                Return _glyph
+            End Get
+            Set(value As String)
+                _glyph = value
                 Invalidate()
             End Set
         End Property
@@ -41,10 +53,10 @@ Namespace UI
             FlatStyle = FlatStyle.Flat
             FlatAppearance.BorderSize = 0
             BackColor = Theme.SidebarBg
-            ForeColor = Theme.TextLight
-            Font = Theme.AppFont(10.5F)
+            ForeColor = Theme.SidebarItemText
+            Font = Theme.AppFont(10.5F, FontStyle.Bold)
             Cursor = Cursors.Hand
-            Height = 46
+            Height = 52
         End Sub
 
         Protected Overrides Sub OnMouseEnter(e As EventArgs)
@@ -62,77 +74,117 @@ Namespace UI
             g.SmoothingMode = SmoothingMode.AntiAlias
             g.Clear(Theme.SidebarBg)
 
-            Dim rect As Rectangle
-            If _danger Then
-                rect = New Rectangle(12, 3, Width - 24, Height - 20)   ' extra gap below
-            Else
-                rect = New Rectangle(12, 3, Width - 24, Height - 6)
-            End If
+            Dim rect = New Rectangle(14, 4, Width - 28, Height - 8)
+            If rect.Width <= 0 OrElse rect.Height <= 0 Then Return
 
             If _danger Then
                 PaintDanger(g, rect)
                 Return
             End If
 
-            Dim back As Color
+            ' Pill face: gold when active, cream at rest, slightly darker on hover.
+            Dim face As Color
+            Dim fore As Color
             If _active Then
-                back = Theme.Accent
+                face = Theme.Accent
+                fore = Color.White
             ElseIf _hover Then
-                back = Theme.SidebarBgDarker
+                face = Theme.Shift(Theme.SidebarItemBg, -0.06F)
+                fore = Theme.SidebarItemText
             Else
-                back = Theme.SidebarBg
+                face = Theme.SidebarItemBg
+                fore = Theme.SidebarItemText
             End If
 
-            Using path = Theme.RoundedRect(rect, 8)
-                Using b As New SolidBrush(back)
+            ' Soft drop shadow so the pill lifts off the navy rail.
+            Using shadow = Theme.RoundedRect(New Rectangle(rect.X + 1, rect.Y + 2, rect.Width, rect.Height), 10)
+                Using b As New SolidBrush(Color.FromArgb(40, 0, 0, 0))
+                    g.FillPath(b, shadow)
+                End Using
+            End Using
+
+            Using path = Theme.RoundedRect(rect, 10)
+                Using b As New SolidBrush(face)
                     g.FillPath(b, path)
                 End Using
             End Using
 
-            ' Dark-blue accent stripe on the active screen's button
-            If _active Then
-                Using bar As New SolidBrush(Theme.Highlight)
-                    g.FillRectangle(bar, rect.X, rect.Y + 6, 4, rect.Height - 12)
-                End Using
-            End If
+            DrawGlyph(g, _glyph, rect.X + 14, rect.Y + (rect.Height \ 2) - 9, fore)
 
-            Dim txtColor = If(_active, Color.White, Theme.TextLight)
-            Dim txtRect = New Rectangle(rect.X + 16, rect.Y, rect.Width - 20, rect.Height)
-            TextRenderer.DrawText(g, Text, Font, txtRect, txtColor,
+            Dim txtRect = New Rectangle(rect.X + 44, rect.Y, rect.Width - 48, rect.Height)
+            TextRenderer.DrawText(g, Text, Font, txtRect, fore,
                                   TextFormatFlags.Left Or TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis)
         End Sub
 
-        ''' <summary>Destructive style: outlined at rest, solid red on hover.</summary>
+        ''' <summary>Destructive style: solid red pill, brighter on hover.</summary>
         Private Sub PaintDanger(g As Graphics, rect As Rectangle)
-            Dim fill = If(_hover, Color.FromArgb(226, 76, 65), DangerRed)
+            Dim fill = If(_hover, Theme.Shift(Theme.DangerRed, 0.12F), Theme.DangerRed)
             Dim fore = Color.White
 
-            Using path = Theme.RoundedRect(rect, 8)
+            Using path = Theme.RoundedRect(rect, 10)
                 Using b As New SolidBrush(fill)
                     g.FillPath(b, path)
                 End Using
             End Using
 
-            DrawExitIcon(g, rect.X + 16, rect.Y + (rect.Height \ 2) - 7, fore)
+            DrawGlyph(g, "Exit", rect.X + 14, rect.Y + (rect.Height \ 2) - 9, fore)
 
-            Dim txtRect = New Rectangle(rect.X + 42, rect.Y, rect.Width - 46, rect.Height)
+            Dim txtRect = New Rectangle(rect.X + 44, rect.Y, rect.Width - 48, rect.Height)
             TextRenderer.DrawText(g, Text, Font, txtRect, fore,
                                   TextFormatFlags.Left Or TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis)
         End Sub
 
-        ''' <summary>Small "leaving through a door" glyph, drawn with lines so no font is required.</summary>
-        Private Sub DrawExitIcon(g As Graphics, x As Integer, y As Integer, c As Color)
-            Using p As New Pen(c, 1.6F)
+        ''' <summary>18x18 line-art icons drawn with GDI+ so no icon font or image asset is needed.</summary>
+        Private Sub DrawGlyph(g As Graphics, kind As String, x As Integer, y As Integer, c As Color)
+            Using p As New Pen(c, 1.7F)
                 p.StartCap = LineCap.Round
                 p.EndCap = LineCap.Round
-                ' door frame (open on the right)
-                g.DrawLine(p, x, y, x + 6, y)
-                g.DrawLine(p, x, y, x, y + 14)
-                g.DrawLine(p, x, y + 14, x + 6, y + 14)
-                ' arrow pointing out
-                g.DrawLine(p, x + 4, y + 7, x + 14, y + 7)
-                g.DrawLine(p, x + 10, y + 3, x + 14, y + 7)
-                g.DrawLine(p, x + 10, y + 11, x + 14, y + 7)
+                p.LineJoin = LineJoin.Round
+
+                Select Case kind
+                    Case "Dashboard"
+                        ' four panes
+                        g.DrawRectangle(p, x, y, 7, 7)
+                        g.DrawRectangle(p, x + 11, y, 7, 7)
+                        g.DrawRectangle(p, x, y + 11, 7, 7)
+                        g.DrawRectangle(p, x + 11, y + 11, 7, 7)
+
+                    Case "Stock"
+                        ' in / out arrows
+                        g.DrawLine(p, x + 1, y + 5, x + 15, y + 5)
+                        g.DrawLine(p, x + 11, y + 1, x + 15, y + 5)
+                        g.DrawLine(p, x + 11, y + 9, x + 15, y + 5)
+                        g.DrawLine(p, x + 17, y + 13, x + 3, y + 13)
+                        g.DrawLine(p, x + 7, y + 9, x + 3, y + 13)
+                        g.DrawLine(p, x + 7, y + 17, x + 3, y + 13)
+
+                    Case "Supplies"
+                        ' carton
+                        g.DrawLine(p, x + 1, y + 5, x + 9, y + 1)
+                        g.DrawLine(p, x + 9, y + 1, x + 17, y + 5)
+                        g.DrawLine(p, x + 17, y + 5, x + 17, y + 14)
+                        g.DrawLine(p, x + 17, y + 14, x + 9, y + 18)
+                        g.DrawLine(p, x + 9, y + 18, x + 1, y + 14)
+                        g.DrawLine(p, x + 1, y + 14, x + 1, y + 5)
+                        g.DrawLine(p, x + 1, y + 5, x + 9, y + 9)
+                        g.DrawLine(p, x + 17, y + 5, x + 9, y + 9)
+                        g.DrawLine(p, x + 9, y + 9, x + 9, y + 18)
+
+                    Case "Reports"
+                        ' bar chart
+                        g.DrawLine(p, x + 1, y + 17, x + 17, y + 17)
+                        g.DrawLine(p, x + 4, y + 17, x + 4, y + 10)
+                        g.DrawLine(p, x + 9, y + 17, x + 9, y + 4)
+                        g.DrawLine(p, x + 14, y + 17, x + 14, y + 8)
+
+                    Case "Exit"
+                        g.DrawLine(p, x + 1, y + 1, x + 8, y + 1)
+                        g.DrawLine(p, x + 1, y + 1, x + 1, y + 17)
+                        g.DrawLine(p, x + 1, y + 17, x + 8, y + 17)
+                        g.DrawLine(p, x + 6, y + 9, x + 17, y + 9)
+                        g.DrawLine(p, x + 13, y + 5, x + 17, y + 9)
+                        g.DrawLine(p, x + 13, y + 13, x + 17, y + 9)
+                End Select
             End Using
         End Sub
     End Class

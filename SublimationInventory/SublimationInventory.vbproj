@@ -115,6 +115,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="UI\UiHelpers.vb" />
+    <Compile Include="UI\ReportExporter.vb" />
     <Compile Include="Forms\LoginForm.vb">
       <SubType>Form</SubType>
     </Compile>

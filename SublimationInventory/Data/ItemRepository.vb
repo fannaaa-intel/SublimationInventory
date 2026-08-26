@@ -1,5 +1,4 @@
-Imports System.Data.SqlClient
-Imports MySql.Data.MySqlClient
+﻿Imports MySql.Data.MySqlClient
 Imports SublimationInventory.Models
 
 Namespace Data
