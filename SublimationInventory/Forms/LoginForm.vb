@@ -20,16 +20,18 @@ Namespace Forms
         End Sub
 
         Private Sub InitializeComponent()
-            Me.Text = "Sublimation Inventory - Sign In"
+            Me.Text = "RJA Sportswear Inventory - Sign In"
             Me.StartPosition = FormStartPosition.CenterScreen
             Me.FormBorderStyle = FormBorderStyle.FixedSingle
             Me.MaximizeBox = False
             Me.MinimizeBox = False
-            Me.ClientSize = New Size(780, 470)
+            Me.ClientSize = New Size(800, 500)
             Me.BackColor = Theme.ContentBg
             Me.Font = Theme.AppFont(10.0F)
+            Dim ico = Branding.CreateWindowIcon()
+            If ico IsNot Nothing Then Me.Icon = ico
 
-            Dim brand As New Panel With {.Dock = DockStyle.Left, .Width = 330, .BackColor = Theme.SidebarBg}
+            Dim brand As New Panel With {.Dock = DockStyle.Left, .Width = 340, .BackColor = Theme.SidebarBg}
             AddHandler brand.Paint, AddressOf PaintBrand
             Me.Controls.Add(brand)
 
@@ -38,27 +40,27 @@ Namespace Forms
             rightPane.BringToFront()
 
             Dim title As New Label With {.Text = "Welcome back", .Font = Theme.AppFont(18.0F, FontStyle.Bold),
-                                         .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 62)}
+                                         .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 76)}
             Dim subtitle As New Label With {.Text = "Sign in to manage your inventory", .Font = Theme.AppFont(10.0F),
-                                            .ForeColor = Theme.TextMuted, .AutoSize = True, .Location = New Point(48, 98)}
+                                            .ForeColor = Theme.TextMuted, .AutoSize = True, .Location = New Point(48, 112)}
             rightPane.Controls.Add(title)
             rightPane.Controls.Add(subtitle)
 
-            rightPane.Controls.Add(New Label With {.Text = "Username", .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 150)})
-            txtUser = New TextBox With {.Location = New Point(48, 174), .Width = 340, .Font = Theme.AppFont(11.0F),
+            rightPane.Controls.Add(New Label With {.Text = "Username", .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 168)})
+            txtUser = New TextBox With {.Location = New Point(48, 192), .Width = 340, .Font = Theme.AppFont(11.0F),
                                         .BorderStyle = BorderStyle.FixedSingle, .BackColor = Theme.CardBg}
             rightPane.Controls.Add(txtUser)
 
-            rightPane.Controls.Add(New Label With {.Text = "Password", .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 214)})
-            txtPass = New TextBox With {.Location = New Point(48, 238), .Width = 340, .Font = Theme.AppFont(11.0F),
+            rightPane.Controls.Add(New Label With {.Text = "Password", .ForeColor = Theme.TextDark, .AutoSize = True, .Location = New Point(48, 236)})
+            txtPass = New TextBox With {.Location = New Point(48, 260), .Width = 340, .Font = Theme.AppFont(11.0F),
                                         .BorderStyle = BorderStyle.FixedSingle, .BackColor = Theme.CardBg,
                                         .UseSystemPasswordChar = True}
             rightPane.Controls.Add(txtPass)
 
-            lblError = New Label With {.ForeColor = Theme.DangerRed, .AutoSize = True, .Location = New Point(48, 276), .Text = ""}
+            lblError = New Label With {.ForeColor = Theme.DangerRed, .AutoSize = True, .Location = New Point(48, 300), .Text = ""}
             rightPane.Controls.Add(lblError)
 
-            Dim btnLogin As New Button With {.Text = "Sign In", .Location = New Point(48, 302), .Width = 340}
+            Dim btnLogin As New Button With {.Text = "Sign In", .Location = New Point(48, 328), .Width = 340}
             UiHelpers.StyleAccentButton(btnLogin)
             AddHandler btnLogin.Click, AddressOf OnLogin
             rightPane.Controls.Add(btnLogin)
@@ -68,28 +70,33 @@ Namespace Forms
         Private Sub PaintBrand(sender As Object, e As PaintEventArgs)
             Dim g = e.Graphics
             g.SmoothingMode = SmoothingMode.AntiAlias
-            Dim d = 72
-            Using ring As New Pen(Theme.Accent, 2.5F)
-                g.DrawEllipse(ring, 52, 66, d + 8, d + 8)
+            Dim panel = DirectCast(sender, Panel)
+
+            ' --- Company logo, centred on the navy panel ---
+            Dim d = 132
+            Dim cx = (panel.Width - d) \ 2
+            Dim cy = 62
+            Branding.DrawCircular(g, cx, cy, d, Theme.Accent, 3.0F, "RJA")
+
+            ' --- Wordmark ---
+            Using f = Theme.AppFont(21.0F, FontStyle.Bold)
+                TextRenderer.DrawText(g, "RJA", f, New Rectangle(0, cy + d + 22, panel.Width, 30),
+                                      Theme.TextLight, TextFormatFlags.HorizontalCenter Or TextFormatFlags.NoPrefix)
             End Using
-            Using b As New SolidBrush(Theme.Accent)
-                g.FillEllipse(b, 56, 70, d, d)
+            Using f = Theme.AppFont(13.0F, FontStyle.Bold)
+                TextRenderer.DrawText(g, "SPORTSWEAR", f, New Rectangle(0, cy + d + 54, panel.Width, 22),
+                                      Theme.Accent, TextFormatFlags.HorizontalCenter Or TextFormatFlags.NoPrefix)
             End Using
-            Using f = Theme.AppFont(28.0F, FontStyle.Bold)
-                TextRenderer.DrawText(g, "S", f, New Rectangle(56, 70, d, d), Color.White,
-                                      TextFormatFlags.HorizontalCenter Or TextFormatFlags.VerticalCenter)
+
+            ' --- Divider + tagline ---
+            Dim lineY = cy + d + 92
+            Using p As New Pen(Color.FromArgb(70, Theme.Accent), 1.0F)
+                g.DrawLine(p, 56, lineY, panel.Width - 56, lineY)
             End Using
-            Using f = Theme.AppFont(17.0F, FontStyle.Bold)
-                TextRenderer.DrawText(g, "Sublimation", f, New Point(54, 168), Theme.TextLight)
-                TextRenderer.DrawText(g, "Inventory", f, New Point(54, 196), Theme.Accent)
-            End Using
-            Using f = Theme.AppFont(9.5F)
-                ' NoPrefix: without it TextRenderer eats the "&" and underlines the next letter.
-                TextRenderer.DrawText(g, "Track blanks, ink, paper & prints", f,
-                                      New Rectangle(56, 232, 250, 20), Theme.TextOnNavy, TextFormatFlags.NoPrefix)
-            End Using
-            Using p As New Pen(Color.FromArgb(60, Theme.Accent), 1.0F)
-                g.DrawLine(p, 56, 262, 260, 262)
+            Using f = Theme.AppFont(9.0F)
+                TextRenderer.DrawText(g, "Inventory Management System", f,
+                                      New Rectangle(0, lineY + 14, panel.Width, 20),
+                                      Theme.TextOnNavy, TextFormatFlags.HorizontalCenter Or TextFormatFlags.NoPrefix)
             End Using
         End Sub
 

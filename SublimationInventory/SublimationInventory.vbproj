@@ -116,6 +116,7 @@
     </Compile>
     <Compile Include="UI\UiHelpers.vb" />
     <Compile Include="UI\ReportExporter.vb" />
+    <Compile Include="UI\Branding.vb" />
     <Compile Include="Forms\LoginForm.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -140,6 +141,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets\logo.png" Condition="Exists('Assets\logo.png')" />
     <EmbeddedResource Include="Forms\LoginForm.resx">
       <DependentUpon>LoginForm.vb</DependentUpon>
     </EmbeddedResource>
