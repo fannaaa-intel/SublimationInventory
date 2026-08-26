@@ -16,6 +16,7 @@ Namespace UI
         Private _logo As Image
         Private _looked As Boolean
 
+
         ''' <summary>
         ''' The logo, or Nothing when no logo file has been supplied. Callers must
         ''' handle Nothing - the app has to keep working before the asset is added.
@@ -70,13 +71,17 @@ Namespace UI
         End Function
 
         ''' <summary>
-        ''' Draws the logo centred inside a circle of the given diameter, cropped to a
-        ''' square first so a non-square source is never distorted. Falls back to the
-        ''' initials badge when no logo is available.
+        ''' Draws the complete logo centred inside a circle of the given diameter,
+        ''' scaled to fit and never distorted. Falls back to a gold badge with the
+        ''' given text when no logo is available.
         ''' </summary>
+        ''' <param name="zoom">
+        ''' Fraction of the circle the logo fills, 0-1. 1.0 fills it edge to edge;
+        ''' lower values inset the mark, leaving a white margin inside the ring.
+        ''' </param>
         Public Sub DrawCircular(g As Graphics, x As Integer, y As Integer, size As Integer,
                                 Optional ringColor As Color? = Nothing, Optional ringWidth As Single = 2.5F,
-                                Optional fallbackText As String = "")
+                                Optional fallbackText As String = "", Optional zoom As Single = 1.0F)
             Dim ring = If(ringColor.HasValue, ringColor.Value, Theme.Accent)
             g.SmoothingMode = SmoothingMode.AntiAlias
 
@@ -92,15 +97,19 @@ Namespace UI
                         g.FillEllipse(b, x, y, size, size)
                     End Using
 
-                    ' Centre-crop the source to a square, then scale into the circle.
+                    ' Fit the WHOLE logo inside the circle rather than cropping into it.
+                    ' The artwork carries the crown above and "SPORTSWEAR" below the
+                    ' monogram; any centre-crop tight enough to enlarge the letters
+                    ' slices those off, so scale the complete mark down instead.
                     Dim src = Logo
-                    Dim side = Math.Min(src.Width, src.Height)
-                    Dim sx = (src.Width - side) \ 2
-                    Dim sy = (src.Height - side) \ 2
+                    Dim z = Math.Max(0.2F, Math.Min(1.0F, zoom))
+                    Dim box = size * z
+                    Dim sc = Math.Min(box / src.Width, box / src.Height)
+                    Dim dw = CInt(src.Width * sc)
+                    Dim dh = CInt(src.Height * sc)
                     g.InterpolationMode = InterpolationMode.HighQualityBicubic
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality
-                    g.DrawImage(src, New Rectangle(x, y, size, size),
-                                New Rectangle(sx, sy, side, side), GraphicsUnit.Pixel)
+                    g.DrawImage(src, New Rectangle(x + (size - dw) \ 2, y + (size - dh) \ 2, dw, dh))
 
                     g.Clip = old
                 End Using

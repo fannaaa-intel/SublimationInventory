@@ -36,10 +36,18 @@ CREATE TABLE IF NOT EXISTS `users` (
   `Username`     VARCHAR(50)  NOT NULL,
   `PasswordHash` VARCHAR(200) NOT NULL,
   `FullName`     VARCHAR(100) DEFAULT NULL,
-  `ProfileImage` LONGBLOB     DEFAULT NULL,
   PRIMARY KEY (`UserId`),
   UNIQUE KEY `UQ_Users_Username` (`Username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- The sidebar circle now shows the company logo rather than a per-user
+-- photo, so no ProfileImage column is created here any more.
+--
+-- Databases created by an earlier build still have one. It is unused and
+-- harmless. To reclaim the space, run this by hand -- it permanently
+-- deletes any stored pictures, so take a backup first:
+--
+--   ALTER TABLE `users` DROP COLUMN `ProfileImage`;
 
 -- ---------------------------------------------------------------------
 -- Table `items`

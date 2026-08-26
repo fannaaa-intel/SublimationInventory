@@ -1,4 +1,4 @@
-Imports System.Configuration
+﻿Imports System.Configuration
 Imports MySql.Data.MySqlClient
 Imports SublimationInventory.Services
 
@@ -90,18 +90,6 @@ Namespace Data
                 Exec(conn, usersDdl)
                 Exec(conn, itemsDdl)
                 Exec(conn, txDdl)
-                EnsureUserImageColumn(conn)
-            End Using
-        End Sub
-
-        ''' <summary>Adds Users.ProfileImage if it isn't there yet (safe on existing databases).</summary>
-        Private Sub EnsureUserImageColumn(conn As MySqlConnection)
-            Dim check = "SELECT COUNT(*) FROM information_schema.COLUMNS " &
-                        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='Users' AND COLUMN_NAME='ProfileImage'"
-            Using cmd As New MySqlCommand(check, conn)
-                If Convert.ToInt32(cmd.ExecuteScalar()) = 0 Then
-                    Exec(conn, "ALTER TABLE Users ADD COLUMN ProfileImage LONGBLOB NULL")
-                End If
             End Using
         End Sub
 
